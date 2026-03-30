@@ -6,7 +6,7 @@ FROM node:20-alpine
 
 # Copy package files and install dependencies
 COPY app/package*.json ./app/
-RUN cd app && npm install --production
+RUN MY_END=dev cd app && npm install --production
 
 # Copy application source
 COPY app/index.js ./app/
