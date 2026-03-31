@@ -31,6 +31,13 @@ jobs:
             dockerfile: docker/Dockerfile.alpine
             target: ""
     steps:
+      # ============= InvisiRisk Setup =============
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          app_token: ${{secrets.IR_API_KEY}}
+          mode: docker-intercept
+      # ============= InvisiRisk Setup End =============
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -42,11 +49,17 @@ jobs:
               --target "${{ matrix.target }}" \
               -f "${{ matrix.dockerfile }}" \
               -t "sample-docker-build:${{ matrix.id }}" \
+              --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
+              --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
+              --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
               .
           else
             docker build \
               -f "${{ matrix.dockerfile }}" \
               -t "sample-docker-build:${{ matrix.id }}" \
+              --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
+              --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
+              --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
               .
           fi
 
@@ -68,11 +81,25 @@ jobs:
         if: always()
         run: |
           docker rm -f sample-${{ matrix.id }} >/dev/null 2>&1 || true
+      # ============= InvisiRisk Cleanup =============
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
 
   multi-platform-metadata:
     runs-on: ubuntu-latest
     if: ${{ inputs.variant == 'all' || inputs.variant == 'multi-platform-metadata' }}
     steps:
+      # ============= InvisiRisk Setup =============
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          app_token: ${{secrets.IR_API_KEY}}
+          mode: docker-intercept
+      # ============= InvisiRisk Setup End =============
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -89,17 +116,35 @@ jobs:
             --file docker/Dockerfile.multistage \
             --target runtime \
             --output type=oci,dest=/tmp/sample-multi-platform.oci \
+            --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
+            --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
+            --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
             .
+
+      # ============= InvisiRisk Cleanup =============
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
 
   image-artifact-roundtrip:
     runs-on: ubuntu-latest
     if: ${{ inputs.variant == 'all' || inputs.variant == 'image-artifact-roundtrip' }}
     steps:
+      # ============= InvisiRisk Setup =============
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          app_token: ${{secrets.IR_API_KEY}}
+          mode: docker-intercept
+      # ============= InvisiRisk Setup End =============
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Build image for artifact
-        run: docker build -f docker/Dockerfile.raw -t sample-docker-build:artifact .
+        run: docker build -f docker/Dockerfile.raw -t sample-docker-build:artifact --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 .
 
       - name: Save tarball
         run: docker save sample-docker-build:artifact -o /tmp/sample-docker-build.tar
@@ -110,11 +155,26 @@ jobs:
           name: docker-image-tar
           path: /tmp/sample-docker-build.tar
 
+      # ============= InvisiRisk Cleanup =============
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
+
   image-artifact-verify:
     runs-on: ubuntu-latest
     needs: image-artifact-roundtrip
     if: ${{ inputs.variant == 'all' || inputs.variant == 'image-artifact-roundtrip' }}
     steps:
+      # ============= InvisiRisk Setup =============
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          app_token: ${{secrets.IR_API_KEY}}
+          mode: docker-intercept
+      # ============= InvisiRisk Setup End =============
       - name: Download image tar
         uses: actions/download-artifact@v4
         with:
@@ -137,3 +197,10 @@ jobs:
       - name: Cleanup
         if: always()
         run: docker rm -f artifact-check >/dev/null 2>&1 || true
+      # ============= InvisiRisk Cleanup =============
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
