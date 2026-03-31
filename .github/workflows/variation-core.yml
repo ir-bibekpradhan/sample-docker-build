@@ -70,6 +70,15 @@ jobs:
             buildkit: "0"
             smoke: true
     steps:
+      # ---------------- PSE Setup ----------------
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          api_url: "https://app.stage.invisirisk.com"
+          app_token: ${{ secrets.IR_API_KEY }}
+          mode: docker-intercept
+      # ---------------- PSE Setup End ----------------
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -102,6 +111,14 @@ jobs:
         run: |
           docker rm -f sample-${{ matrix.id }} >/dev/null 2>&1 || true
 
+      # ---------------- PSE Cleanup ----------------
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ---------------- PSE Cleanup End ----------------
+
   docker-build-action-variants:
     runs-on: ubuntu-latest
     strategy:
@@ -129,6 +146,15 @@ jobs:
             target: build
             smoke: false
     steps:
+      # ---------------- PSE Setup ----------------
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          api_url: "https://app.stage.invisirisk.com"
+          app_token: ${{ secrets.IR_API_KEY }}
+          mode: docker-intercept
+      # ---------------- PSE Setup End ----------------
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -182,3 +208,11 @@ jobs:
         if: always()
         run: |
           docker rm -f sample-${{ matrix.id }} >/dev/null 2>&1 || true
+
+      # ---------------- PSE Cleanup ----------------
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ---------------- PSE Cleanup End ----------------
