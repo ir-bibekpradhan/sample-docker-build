@@ -38,6 +38,12 @@ jobs:
           - variation-build-args-env.yml
 
     steps:
+      # ============= InvisiRisk Setup =============
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          app_token: ${{secrets.IR_API_KEY}}
+      # ============= InvisiRisk Setup End =============
       - name: Dispatch workflow
         uses: actions/github-script@v7
         with:
@@ -55,3 +61,10 @@ jobs:
 
       - name: Add summary
         run: echo "Dispatched ${{ matrix.workflow }}" >> $GITHUB_STEP_SUMMARY
+      # ============= InvisiRisk Cleanup =============
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
