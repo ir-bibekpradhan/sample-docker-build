@@ -156,14 +156,14 @@ jobs:
             .
 
       - name: Save tarball
-        run: docker save sample-docker-build:artifact -o sample-docker-build.tar
+        run: docker save sample-docker-build:artifact -o /tmp/sample-docker-build.tar
 
       - name: Verify tarball exists
         run: |
           echo "Checking tarball..."
-          if [ -f sample-docker-build.tar ]; then
+          if [ -f /tmp/sample-docker-build.tar ]; then
             echo "Tarball exists:"
-            ls -lh sample-docker-build.tar
+            ls -lh /tmp/sample-docker-build.tar
           else
             echo "ERROR: Docker tarball not found!" && exit 1
           fi
@@ -172,7 +172,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: docker-image-tar
-          path: sample-docker-build.tar
+          path: /tmp/sample-docker-build.tar
           if-no-files-found: warn
 
       - name: Cleanup PSE
@@ -201,11 +201,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: docker-image-tar
-          path: .
+          path: /tmp
+
+      - name: Verify download
+        run: |
+          echo "Listing files in /tmp:"
+          ls -lh /tmp
+          if [ ! -f /tmp/sample-docker-build.tar ]; then
+            echo "ERROR: Docker tarball not found after download!" && exit 1
+          fi
 
       - name: Load and smoke test
         run: |
-          docker load -i sample-docker-build.tar
+          docker load -i /tmp/sample-docker-build.tar
           docker run -d --rm --name artifact-check -p 18083:3000 sample-docker-build:artifact
           for i in {1..10}; do
             if curl -fsS http://127.0.0.1:18083/health; then
