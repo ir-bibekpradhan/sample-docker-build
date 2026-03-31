@@ -70,6 +70,13 @@ jobs:
             buildkit: "0"
             smoke: true
     steps:
+      # ============= InvisiRisk Setup =============
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          app_token: ${{secrets.IR_API_KEY}}
+          mode: docker-intercept
+      # ============= InvisiRisk Setup End =============
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -81,6 +88,9 @@ jobs:
           docker build \
             -f "${{ matrix.dockerfile }}" \
             -t "sample-docker-build:${{ matrix.id }}" \
+            --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
+            --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
+            --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
             "${{ matrix.context }}"
 
       - name: Smoke test container
@@ -101,6 +111,13 @@ jobs:
         if: always()
         run: |
           docker rm -f sample-${{ matrix.id }} >/dev/null 2>&1 || true
+      # ============= InvisiRisk Cleanup =============
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
 
   docker-build-action-variants:
     runs-on: ubuntu-latest
@@ -129,6 +146,13 @@ jobs:
             target: build
             smoke: false
     steps:
+      # ============= InvisiRisk Setup =============
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          app_token: ${{secrets.IR_API_KEY}}
+          mode: docker-intercept
+      # ============= InvisiRisk Setup End =============
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -182,3 +206,10 @@ jobs:
         if: always()
         run: |
           docker rm -f sample-${{ matrix.id }} >/dev/null 2>&1 || true
+      # ============= InvisiRisk Cleanup =============
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
