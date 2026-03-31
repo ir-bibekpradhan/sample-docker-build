@@ -11,6 +11,8 @@ on:
 jobs:
   advanced-docker-variants:
     runs-on: ubuntu-latest
+    env:
+      PSE_PROXY_IP: 10.1.0.9
     strategy:
       fail-fast: false
       matrix:
@@ -90,6 +92,8 @@ jobs:
 
   multi-platform-metadata:
     runs-on: ubuntu-latest
+    env:
+      PSE_PROXY_IP: 10.1.0.9
     if: ${{ inputs.variant == 'all' || inputs.variant == 'multi-platform-metadata' }}
     steps:
       - name: Setup PSE
@@ -114,7 +118,7 @@ jobs:
             --platform linux/amd64,linux/arm64 \
             --file docker/Dockerfile.multistage \
             --target runtime \
-            --output type=oci,dest=/tmp/sample-multi-platform.oci \
+            --output type=oci,dest=sample-multi-platform.oci \
             --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
             --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
             --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
@@ -129,6 +133,8 @@ jobs:
 
   image-artifact-roundtrip:
     runs-on: ubuntu-latest
+    env:
+      PSE_PROXY_IP: 10.1.0.9
     if: ${{ inputs.variant == 'all' || inputs.variant == 'image-artifact-roundtrip' }}
     steps:
       - name: Setup PSE
@@ -142,20 +148,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build image for artifact
-        run: docker build -f docker/Dockerfile.raw -t sample-docker-build:artifact \
-          --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
-          --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
-          --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 .
+        run: |
+          docker build -f docker/Dockerfile.raw -t sample-docker-build:artifact \
+            --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
+            --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
+            --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
+            .
 
       - name: Save tarball
-        run: docker save sample-docker-build:artifact -o /tmp/sample-docker-build.tar
+        run: docker save sample-docker-build:artifact -o sample-docker-build.tar
 
       - name: Verify tarball exists
         run: |
           echo "Checking tarball..."
-          if [ -f /tmp/sample-docker-build.tar ]; then
+          if [ -f sample-docker-build.tar ]; then
             echo "Tarball exists:"
-            ls -lh /tmp/sample-docker-build.tar
+            ls -lh sample-docker-build.tar
           else
             echo "ERROR: Docker tarball not found!" && exit 1
           fi
@@ -164,7 +172,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: docker-image-tar
-          path: /tmp/sample-docker-build.tar
+          path: sample-docker-build.tar
           if-no-files-found: warn
 
       - name: Cleanup PSE
@@ -186,15 +194,18 @@ jobs:
           app_token: ${{secrets.IR_API_KEY}}
           mode: docker-intercept
 
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download image tar
         uses: actions/download-artifact@v4
         with:
           name: docker-image-tar
-          path: /tmp
+          path: .
 
       - name: Load and smoke test
         run: |
-          docker load -i /tmp/sample-docker-build.tar
+          docker load -i sample-docker-build.tar
           docker run -d --rm --name artifact-check -p 18083:3000 sample-docker-build:artifact
           for i in {1..10}; do
             if curl -fsS http://127.0.0.1:18083/health; then
