@@ -12,13 +12,45 @@ jobs:
   ubuntu-hosted-reference:
     runs-on: ubuntu-latest
     steps:
+      # ============= InvisiRisk Setup =============
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          api_url: "https://app.stage.invisirisk.com"
+          app_token: ${{secrets.IR_API_KEY}}
+          mode: docker-intercept
+      # ============= InvisiRisk Setup End =============
       - uses: actions/checkout@v4
-      - run: docker build -f docker/Dockerfile.raw -t sample-docker-build:hosted-ref .
+      - run: docker build -f docker/Dockerfile.raw -t sample-docker-build:hosted-ref --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 .
+      # ============= InvisiRisk Cleanup =============
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          api_url: "https://app.stage.invisirisk.com"
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
 
   self-hosted-dind-style:
     if: ${{ inputs.run_self_hosted == 'true' }}
     runs-on: self-hosted
     steps:
+      # ============= InvisiRisk Setup =============
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          api_url: "https://app.stage.invisirisk.com"
+          app_token: ${{secrets.IR_API_KEY}}
+          mode: docker-intercept
+      # ============= InvisiRisk Setup End =============
       - uses: actions/checkout@v4
       - name: Build on self-hosted runner
-        run: docker build -f docker/Dockerfile.raw -t sample-docker-build:self-hosted .
+        run: docker build -f docker/Dockerfile.raw -t sample-docker-build:self-hosted --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 .
+      # ============= InvisiRisk Cleanup =============
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          api_url: "https://app.stage.invisirisk.com"
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
