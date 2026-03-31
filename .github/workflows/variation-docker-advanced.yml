@@ -31,14 +31,13 @@ jobs:
             dockerfile: docker/Dockerfile.alpine
             target: ""
     steps:
-      # ============= InvisiRisk Setup =============
       - name: Setup PSE
         uses: invisirisk/pse-action@develop
         with:
           api_url: "https://app.stage.invisirisk.com"
           app_token: ${{secrets.IR_API_KEY}}
           mode: docker-intercept
-      # ============= InvisiRisk Setup End =============
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -63,12 +62,13 @@ jobs:
               --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
               .
           fi
+
       - name: Smoke test
         if: ${{ inputs.variant == 'all' || inputs.variant == matrix.id }}
         run: |
           set -e
           docker run -d --rm --name sample-${{ matrix.id }} -p 18082:3000 sample-docker-build:${{ matrix.id }}
-          for i in 1 2 3 4 5 6 7 8 9 10; do
+          for i in {1..10}; do
             if curl -fsS http://127.0.0.1:18082/health; then
               break
             fi
@@ -76,31 +76,29 @@ jobs:
           done
           curl -fsS http://127.0.0.1:18082/health
           docker logs sample-${{ matrix.id }}
+
       - name: Cleanup
         if: always()
-        run: |
-          docker rm -f sample-${{ matrix.id }} >/dev/null 2>&1 || true
-      # ============= InvisiRisk Cleanup =============
+        run: docker rm -f sample-${{ matrix.id }} >/dev/null 2>&1 || true
+
       - name: Cleanup PSE
         if: always()
         uses: invisirisk/pse-action@develop
         with:
           api_url: "https://app.stage.invisirisk.com"
           cleanup: "true"
-      # ============= InvisiRisk Cleanup End =============
 
   multi-platform-metadata:
     runs-on: ubuntu-latest
     if: ${{ inputs.variant == 'all' || inputs.variant == 'multi-platform-metadata' }}
     steps:
-      # ============= InvisiRisk Setup =============
       - name: Setup PSE
         uses: invisirisk/pse-action@develop
         with:
           api_url: "https://app.stage.invisirisk.com"
           app_token: ${{secrets.IR_API_KEY}}
           mode: docker-intercept
-      # ============= InvisiRisk Setup End =============
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -121,32 +119,33 @@ jobs:
             --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
             --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
             .
-      # ============= InvisiRisk Cleanup =============
+
       - name: Cleanup PSE
         if: always()
         uses: invisirisk/pse-action@develop
         with:
           api_url: "https://app.stage.invisirisk.com"
           cleanup: "true"
-      # ============= InvisiRisk Cleanup End =============
 
   image-artifact-roundtrip:
     runs-on: ubuntu-latest
     if: ${{ inputs.variant == 'all' || inputs.variant == 'image-artifact-roundtrip' }}
     steps:
-      # ============= InvisiRisk Setup =============
       - name: Setup PSE
         uses: invisirisk/pse-action@develop
         with:
           api_url: "https://app.stage.invisirisk.com"
           app_token: ${{secrets.IR_API_KEY}}
           mode: docker-intercept
-      # ============= InvisiRisk Setup End =============
+
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Build image for artifact
-        run: docker build -f docker/Dockerfile.raw -t sample-docker-build:artifact --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 .
+        run: docker build -f docker/Dockerfile.raw -t sample-docker-build:artifact \
+          --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
+          --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
+          --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 .
 
       - name: Save tarball
         run: docker save sample-docker-build:artifact -o /tmp/sample-docker-build.tar
@@ -161,28 +160,32 @@ jobs:
             echo "ERROR: Docker tarball not found!" && exit 1
           fi
 
-      # ============= InvisiRisk Cleanup =============
+      - name: Upload image tar
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-tar
+          path: /tmp/sample-docker-build.tar
+          if-no-files-found: warn
+
       - name: Cleanup PSE
         if: always()
         uses: invisirisk/pse-action@develop
         with:
           api_url: "https://app.stage.invisirisk.com"
           cleanup: "true"
-      # ============= InvisiRisk Cleanup End =============
 
   image-artifact-verify:
     runs-on: ubuntu-latest
     needs: image-artifact-roundtrip
     if: ${{ inputs.variant == 'all' || inputs.variant == 'image-artifact-roundtrip' }}
     steps:
-      # ============= InvisiRisk Setup =============
       - name: Setup PSE
         uses: invisirisk/pse-action@develop
         with:
           api_url: "https://app.stage.invisirisk.com"
           app_token: ${{secrets.IR_API_KEY}}
           mode: docker-intercept
-      # ============= InvisiRisk Setup End =============
+
       - name: Download image tar
         uses: actions/download-artifact@v4
         with:
@@ -193,7 +196,7 @@ jobs:
         run: |
           docker load -i /tmp/sample-docker-build.tar
           docker run -d --rm --name artifact-check -p 18083:3000 sample-docker-build:artifact
-          for i in 1 2 3 4 5 6 7 8 9 10; do
+          for i in {1..10}; do
             if curl -fsS http://127.0.0.1:18083/health; then
               break
             fi
@@ -201,14 +204,14 @@ jobs:
           done
           curl -fsS http://127.0.0.1:18083/health
           docker logs artifact-check
+
       - name: Cleanup
         if: always()
         run: docker rm -f artifact-check >/dev/null 2>&1 || true
-      # ============= InvisiRisk Cleanup =============
+
       - name: Cleanup PSE
         if: always()
         uses: invisirisk/pse-action@develop
         with:
           api_url: "https://app.stage.invisirisk.com"
           cleanup: "true"
-      # ============= InvisiRisk Cleanup End =============
