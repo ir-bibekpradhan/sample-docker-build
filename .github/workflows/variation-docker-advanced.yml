@@ -71,9 +71,7 @@ jobs:
           set -e
           docker run -d --rm --name sample-${{ matrix.id }} -p 18082:3000 sample-docker-build:${{ matrix.id }}
           for i in {1..10}; do
-            if curl -fsS http://127.0.0.1:18082/health; then
-              break
-            fi
+            if curl -fsS http://127.0.0.1:18082/health; then break; fi
             sleep 2
           done
           curl -fsS http://127.0.0.1:18082/health
@@ -118,7 +116,7 @@ jobs:
             --platform linux/amd64,linux/arm64 \
             --file docker/Dockerfile.multistage \
             --target runtime \
-            --output type=oci,dest=sample-multi-platform.oci \
+            --output type=oci,dest=/tmp/sample-multi-platform.oci \
             --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
             --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
             --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
@@ -175,6 +173,11 @@ jobs:
           path: /tmp/sample-docker-build.tar
           if-no-files-found: warn
 
+      - name: Debug uploaded artifacts
+        run: |
+          echo "Artifacts uploaded:"
+          ls -lh /tmp
+
       - name: Cleanup PSE
         if: always()
         uses: invisirisk/pse-action@develop
@@ -203,22 +206,17 @@ jobs:
           name: docker-image-tar
           path: /tmp
 
-      - name: Verify download
+      - name: Debug downloaded artifacts
         run: |
-          echo "Listing files in /tmp:"
+          echo "Artifacts downloaded:"
           ls -lh /tmp
-          if [ ! -f /tmp/sample-docker-build.tar ]; then
-            echo "ERROR: Docker tarball not found after download!" && exit 1
-          fi
 
       - name: Load and smoke test
         run: |
           docker load -i /tmp/sample-docker-build.tar
           docker run -d --rm --name artifact-check -p 18083:3000 sample-docker-build:artifact
           for i in {1..10}; do
-            if curl -fsS http://127.0.0.1:18083/health; then
-              break
-            fi
+            if curl -fsS http://127.0.0.1:18083/health; then break; fi
             sleep 2
           done
           curl -fsS http://127.0.0.1:18083/health
