@@ -86,13 +86,21 @@ jobs:
         env:
           DOCKER_BUILDKIT: ${{ matrix.buildkit }}
         run: |
-          docker build \
-            -f "${{ matrix.dockerfile }}" \
-            -t "sample-docker-build:${{ matrix.id }}" \
-            --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
-            --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
-            --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
-            "${{ matrix.context }}"
+          if [ "${{ matrix.buildkit }}" = "1" ]; then
+            docker build \
+              -f "${{ matrix.dockerfile }}" \
+              -t "sample-docker-build:${{ matrix.id }}" \
+              --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
+              --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
+              --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
+              "${{ matrix.context }}"
+          else
+            docker build \
+              -f "${{ matrix.dockerfile }}" \
+              -t "sample-docker-build:${{ matrix.id }}" \
+              --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
+              "${{ matrix.context }}"
+          fi
 
       - name: Smoke test container
         if: ${{ (inputs.variant == 'all' || inputs.variant == matrix.id) && matrix.smoke }}
@@ -112,6 +120,7 @@ jobs:
         if: always()
         run: |
           docker rm -f sample-${{ matrix.id }} >/dev/null 2>&1 || true
+
       # ============= InvisiRisk Cleanup =============
       - name: Cleanup PSE
         if: always()
@@ -209,6 +218,7 @@ jobs:
         if: always()
         run: |
           docker rm -f sample-${{ matrix.id }} >/dev/null 2>&1 || true
+
       # ============= InvisiRisk Cleanup =============
       - name: Cleanup PSE
         if: always()
