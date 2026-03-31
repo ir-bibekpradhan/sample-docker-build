@@ -46,6 +46,22 @@ It includes real-world Dockerized and non-Dockerized CI patterns used in product
 	- PR/manual fast build and main extended build behavior.
 14. `.github/workflows/variation-build-args-env.yml`
 	- Environment-specific build-arg matrix.
+15. `.github/workflows/dispatch-all.yml`
+	- One-click dispatcher that triggers all dispatchable workflows in parallel.
+
+## Trigger all workflows at once
+
+Use `.github/workflows/dispatch-all.yml` with `workflow_dispatch`.
+
+1. Open Actions -> `Dispatch All Workflows`.
+2. Click `Run workflow`.
+3. Optionally set `target_ref` (default `main`).
+4. The dispatcher fans out and triggers all other workflow files that support `workflow_dispatch`.
+
+Notes:
+
+1. `reusable-docker-build.yml` is `workflow_call` only, so it is invoked indirectly by `variation-reusable-caller.yml`.
+2. `variation-self-hosted-optional.yml` keeps self-hosted execution disabled unless explicitly enabled in that workflow.
 
 ## Flat list of implemented build variations
 
