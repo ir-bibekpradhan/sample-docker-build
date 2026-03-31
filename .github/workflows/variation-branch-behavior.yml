@@ -16,20 +16,55 @@ jobs:
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
+      # ---------------- PSE Setup ----------------
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          api_url: "https://app.stage.invisirisk.com"
+          app_token: ${{ secrets.IR_API_KEY }}
+          mode: docker-intercept
+      # ---------------- PSE Setup End ----------------
+
       - uses: actions/checkout@v4
       - name: Fast validation build
         run: docker build -f docker/Dockerfile.raw -t sample-docker-build:pr-fast .
+
+      # ---------------- PSE Cleanup ----------------
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ---------------- PSE Cleanup End ----------------
 
   main-extended-build:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:
+      # ---------------- PSE Setup ----------------
+      - name: Setup PSE
+        uses: invisirisk/pse-action@develop
+        with:
+          api_url: "https://app.stage.invisirisk.com"
+          app_token: ${{ secrets.IR_API_KEY }}
+          mode: docker-intercept
+      # ---------------- PSE Setup End ----------------
+
       - uses: actions/checkout@v4
       - name: Extended build
         run: docker build -f docker/Dockerfile.multistage -t sample-docker-build:main-extended .
+
       - name: Smoke
         uses: ./.github/actions/smoke-test
         with:
           image: sample-docker-build:main-extended
           name: main-extended
           host-port: "18114"
+
+      # ---------------- PSE Cleanup ----------------
+      - name: Cleanup PSE
+        if: always()
+        uses: invisirisk/pse-action@develop
+        with:
+          cleanup: "true"
+      # ---------------- PSE Cleanup End ----------------
