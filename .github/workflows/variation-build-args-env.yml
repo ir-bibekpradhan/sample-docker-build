@@ -28,4 +28,4 @@ jobs:
 
       - name: Assert NODE_ENV in container
         run: |
-          docker run --rm sample-docker-build:env-${{ matrix.env_name }} node -e "if (process.env.NODE_ENV !== '${{ matrix.env_name }}') { process.exit(1) }"
+          docker build -t my-app:latest --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 --rm sample-docker-build:env-${{ matrix.env_name }} node -e "if (process.env.NODE_ENV !== '${{ matrix.env_name }}') { process.exit(1) }"

@@ -23,7 +23,7 @@ It includes real-world Dockerized and non-Dockerized CI patterns used in product
 2. `.github/workflows/variation-core.yml`
 	- Core Docker CLI and build-action matrix variants.
 3. `.github/workflows/variation-docker-advanced.yml`
-	- Advanced Docker runtime, multi-platform metadata, and image artifact roundtrip.
+	- Advanced docker build -t my-app:latest --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128time, multi-platform metadata, and image artifact roundtrip.
 4. `.github/workflows/variation-nondocker.yml`
 	- Non-Docker language matrices (Node/Python/Ruby/Go).
 5. `.github/workflows/variation-pipeline-stages.yml`

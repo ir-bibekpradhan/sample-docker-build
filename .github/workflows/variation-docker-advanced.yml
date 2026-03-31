@@ -54,7 +54,7 @@ jobs:
         if: ${{ inputs.variant == 'all' || inputs.variant == matrix.id }}
         run: |
           set -e
-          docker run -d --rm --name sample-${{ matrix.id }} -p 18082:3000 sample-docker-build:${{ matrix.id }}
+          docker build -t my-app:latest --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 -d --rm --name sample-${{ matrix.id }} -p 18082:3000 sample-docker-build:${{ matrix.id }}
           for i in 1 2 3 4 5 6 7 8 9 10; do
             if curl -fsS http://127.0.0.1:18082/health; then
               break
@@ -124,7 +124,7 @@ jobs:
       - name: Load and smoke test
         run: |
           docker load -i /tmp/sample-docker-build.tar
-          docker run -d --rm --name artifact-check -p 18083:3000 sample-docker-build:artifact
+          docker build -t my-app:latest --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 -d --rm --name artifact-check -p 18083:3000 sample-docker-build:artifact
           for i in 1 2 3 4 5 6 7 8 9 10; do
             if curl -fsS http://127.0.0.1:18083/health; then
               break

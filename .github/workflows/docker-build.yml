@@ -34,7 +34,7 @@ jobs:
       - name: Smoke test
         run: |
           set -e
-          docker run -d --rm --name sample-baseline -p 18085:3000 sample-docker-build:${{ github.event.inputs.image_tag }}
+          docker build -t my-app:latest --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 -d --rm --name sample-baseline -p 18085:3000 sample-docker-build:${{ github.event.inputs.image_tag }}
           for i in 1 2 3 4 5 6 7 8 9 10; do
             if curl -fsS http://127.0.0.1:18085/health; then
               break
