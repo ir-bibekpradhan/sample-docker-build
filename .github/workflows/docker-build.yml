@@ -21,11 +21,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ============= InvisiRisk Setup =============
       - name: Setup PSE
         uses: invisirisk/pse-action@develop
         with:
           api_url: "https://app.stage.invisirisk.com"
           app_token: ${{secrets.IR_API_KEY}}
+          mode: docker-intercept
+      # ============= InvisiRisk Setup End =============
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -34,12 +37,15 @@ jobs:
           docker build \
             -f "${{ github.event.inputs.dockerfile }}" \
             -t sample-docker-build:${{ github.event.inputs.image_tag }} \
+            --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test \
+            --secret id=pse-ca,src=/etc/ssl/certs/pse.pem \
+            --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 \
             "${{ github.event.inputs.context }}"
 
       - name: Smoke test
         run: |
           set -e
-          docker build -t my-app:latest --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 -d --rm --name sample-baseline -p 18085:3000 sample-docker-build:${{ github.event.inputs.image_tag }}
+          docker run -d --rm --name sample-baseline -p 18085:3000 sample-docker-build:${{ github.event.inputs.image_tag }}
           for i in 1 2 3 4 5 6 7 8 9 10; do
             if curl -fsS http://127.0.0.1:18085/health; then
               break
@@ -52,9 +58,10 @@ jobs:
       - name: Cleanup
         if: always()
         run: docker rm -f sample-baseline >/dev/null 2>&1 || true
-
+      # ============= InvisiRisk Cleanup =============
       - name: Cleanup PSE
         if: always()
         uses: invisirisk/pse-action@develop
         with:
-          cleanup: "true"  
+          cleanup: "true"
+      # ============= InvisiRisk Cleanup End =============
