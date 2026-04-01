@@ -35,12 +35,6 @@ jobs:
 
       - name: Save image tar
         run: docker save sample-docker-build:stages -o /tmp/stages-image.tar
-
-      - name: Upload image tar
-        uses: actions/upload-artifact@v4
-        with:
-          name: stages-image
-          path: /tmp/stages-image.tar
       # ============= InvisiRisk Cleanup =============
       - name: Cleanup PSE
         if: always()
