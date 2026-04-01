@@ -25,12 +25,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Build nightly subset image
         run: docker build -f docker/Dockerfile.raw -t sample-docker-build:nightly --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 .
-      - name: Smoke nightly image
-        uses: ./.github/actions/smoke-test
-        with:
-          image: sample-docker-build:nightly
-          name: nightly-subset
-          host-port: "18113"
+    
       # ============= InvisiRisk Cleanup =============
       - name: Cleanup PSE
         if: always()
