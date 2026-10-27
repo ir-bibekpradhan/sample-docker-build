@@ -5,38 +5,23 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   nonroot-cli:
     name: Non-root Docker build through IR
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    env:
-      IR_URL: https://app.stage.invisirisk.com
-      IR_BUILDKIT_IMAGE: public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test
-      IR_TOKEN: ${{ secrets.IR_API_KEY }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup PSE
-        run: 'curl -sSf -H "x-api-key: ${IR_TOKEN}" "${IR_URL}/ingestionapi/v1/pse/bootstrap" | bash'
+        uses: invisirisk/pse-action@latest
+        with:
+          api_url: "https://app.dev.invisirisk.com"
+          app_token: ${{ secrets.IR_API_KEY }}
+          workdir: app
 
-      - name: Docker nonroot
-        run: |
-          #!/bin/bash
-          set -e
-          export DOCKER_BUILDKIT=1
-          : "${PSE_CA_CERT_PATH:?PSE_CA_CERT_PATH is missing}"
-          : "${PSE_PROXY_IP:?PSE_PROXY_IP is missing}"
-          docker build --pull --no-cache \
-            -f docker/Dockerfile.nonroot \
-            -t ir-teamcity-sample-nonroot \
-            --build-arg BUILDKIT_SYNTAX="${IR_BUILDKIT_IMAGE}" \
-            --secret "id=pse-ca,src=${PSE_CA_CERT_PATH}" \
-            --build-arg "PSE_PROXY=http://${PSE_PROXY_IP}:3128" .
-
-      - name: Cleanup PSE
-        if: always()
-        run: export IR_WORKDIR=./app && pse-data-collector cleanup
+      - name: Build Docker image
+        run: docker build -f docker/Dockerfile.nonroot -t my-app:latest --build-arg BUILDKIT_SYNTAX=public.ecr.aws/w3c0c0n7/invisirisk/baf-buildkit:dev-test --secret id=pse-ca,src=/etc/ssl/certs/pse.pem --build-arg PSE_PROXY=http://${PSE_PROXY_IP}:3128 .
